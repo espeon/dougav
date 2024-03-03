@@ -1,0 +1,8 @@
+services:
+  nextjs:
+    container_name: dougav
+    image: dougav:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./videos:/app/videos
