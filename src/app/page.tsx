@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 async function getData() {
-  const res = await fetch("http://localhost:3000/" + "ls?path=videos", {
+  const res = await fetch("/" + "ls?path=videos", {
     cache: "no-store",
   });
   // The return value is *not* serialized
@@ -57,7 +57,7 @@ export default async function Home() {
                 <Link href={`/v/${item.path}/${item.name}`} >
                 <VideoThumb
                   name={item.name}
-                  thumbnail={`http://localhost:3000/thumb?path=${item.path}/${item.name}`}
+                  thumbnail={`/thumb?path=${item.path}/${item.name}`}
                   length={hms(item.length ?? 0)}
                 />
                 </Link>
