@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 async function getData() {
-  const res = await fetch("/" + "ls?path=videos", {
+  const res = await fetch(`${process.env.URL??"http://localhost:3000"}/` + "ls?path=videos", {
     cache: "no-store",
   });
   // The return value is *not* serialized
