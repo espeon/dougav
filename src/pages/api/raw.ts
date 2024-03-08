@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import * as fs from "fs";
+import { getMimeType } from "@/utils/mime";
 
 export default function serveByteRanges(
   req: NextApiRequest,
@@ -37,7 +38,9 @@ export default function serveByteRanges(
     }
   }
 
-  res.setHeader("content-type", "video/mp4");
+  const mime = getMimeType(filePath as string);
+
+  res.setHeader("content-type", mime);
 
   fs.stat(filePath as string, (err, stat) => {
     if (err) {
@@ -54,7 +57,7 @@ export default function serveByteRanges(
       res.statusCode = 200;
       res.setHeader("accept-ranges", "bytes");
       res.setHeader("content-length", contentLength);
-      res.setHeader("content-type", "video/mp4");
+      res.setHeader("content-type", mime);
       res.end();
     } else {
       // Listing 5.

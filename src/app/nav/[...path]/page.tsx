@@ -13,7 +13,7 @@ async function getData(path: string) {
   // You can return Date, Map, Set, etc.
   if (!res.ok) {
     // This will activate the closest `error.js` Error Boundary
-    return [];
+    return []
   }
 
   return res.json();
@@ -40,15 +40,13 @@ function hms(f: number) {
   return hms;
 }
 
-export default async function Home() {
+export default async function Home({ params }: { params: { path: string[] } }) {
   let d: {
     name: string;
     path: string;
     type: string;
-    mime: string;
     length: number | undefined;
-  }[] = await getData("videos");
-  console.log(d);
+  }[] = await getData(params.path.join("/"));
   // put all item types that arent videos in another array
   var folders = d.filter((item) => item.type === "dir");
   var files = d.filter(

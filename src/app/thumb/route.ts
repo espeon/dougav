@@ -50,6 +50,7 @@ function genThumb(path: string): string {
     // generate thumbnail
     let cmd = `ffmpeg -ss 00:00:02.000 -i ${path.replaceAll(' ', '\\ ')} -vframes 1 ${outpath.replaceAll(' ', '\\ ')}`
     try { execSync(cmd) } catch (err) {
+        return "https://i.ytimg.com/vi/9K8ifZ6iDXo/maxresdefault.jpg"
 		console.log('Error occurred, run this command to debug: ' + cmd)
 	}
     return outpath

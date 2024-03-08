@@ -1,8 +1,10 @@
 services:
   nextjs:
     container_name: dougav
-    image: dougav:latest
+    image: ghcr.io/espeon/dougav/dougav:latest
     ports:
       - "3000:3000"
     volumes:
       - ./videos:/app/videos
+    environment:
+      - URL=http://localhost:3000
