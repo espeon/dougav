@@ -2,7 +2,12 @@ import type { NextApiResponse } from "next";
 import { LRUCache } from "lru-cache";
 
 export interface itemValue {
-  length: number;
+  name: string;
+  path: string;
+  type: string;
+  mime: string;
+  length: number | null;
+  bytes: number | null;
 }
 
 export function cache() {
@@ -19,7 +24,7 @@ export function cache() {
       new Promise<itemValue>((resolve, reject) => {
         const item = c.get(key) as itemValue;
 
-        return item !== undefined ? reject() : resolve(item);
+        return item === undefined ? reject() : resolve(item);
       }),
     set: (key: string, value: itemValue) =>
       new Promise<void>((resolve, reject) => {

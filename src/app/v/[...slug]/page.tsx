@@ -21,26 +21,24 @@ interface VideoInfo {
   bytes: number;
 }
 
-export default function VideoPage({
-  params,
-}: {
-  params: { slug: string[] };
-}) {
+export default function VideoPage({ params }: { params: { slug: string[] } }) {
   const [ambi, setAmbi] = useState(false);
   let d: {
     name: string;
     mime: string;
     length: number | undefined;
     bytes: number;
-  } | null
+  } | null;
   // get the slug
 
-  const [data, setData] = useState<VideoInfo|null>(null);
+  const [data, setData] = useState<VideoInfo | null>(null);
   const [isLoading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch(
-      `${process.env.URL ?? "http://localhost:3000"}/` + "ls/file?path=" + params.slug.join("/"),
+      `${process.env.URL ?? "http://localhost:3000"}/` +
+        "ls/file?path=" +
+        params.slug.join("/"),
       {
         cache: "no-store",
       }
@@ -51,7 +49,7 @@ export default function VideoPage({
         setLoading(false);
       });
   }, []);
-  
+
   return (
     <div className="h-screen flex justify-center items-center">
       <div className="min-h-[50%] w-1/2 max-h-screen">
@@ -71,8 +69,9 @@ export default function VideoPage({
           <div className="flex-auto"></div>
           <div>
             <a href={`/api/raw?path=${params.slug.join("/")}`} download>
-              <button className="dark:bg-blue-800 bg-blue-200 hover:bg-blue-500 text-black dark:text-white py-2 px-4 rounded transition-colors duration-300">
-                Download ({data === null?"loading":getSize(data.bytes)})
+              <button className="dark:bg-blue-800 bg-blue-200 hover:bg-blue-500 text-black dark:text-white py-2 px-4 rounded transition-all duration-300">
+                Download{" "}
+                {data === null ? loading : "(" + getSize(data.bytes) + ")"}
               </button>
             </a>
           </div>
@@ -81,3 +80,16 @@ export default function VideoPage({
     </div>
   );
 }
+
+const loading = (
+  <div className="inline-block h-6 w-6 -my-1.5 mx-1 animate-[spin_3.5s_ease-in-out_infinite]">
+    <div
+      className=" h-full w-full animate-[spin_1s_linear_infinite] rounded-full border-4 border-solid border-current border-e-transparent align-[-0.125em] text-surface motion-reduce:animate-[spin_1.5s_linear_infinite] dark:text-white"
+      role="status"
+    >
+      <span className="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">
+        Loading...
+      </span>
+    </div>
+  </div>
+);
