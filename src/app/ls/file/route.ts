@@ -2,7 +2,7 @@ import { type NextRequest } from "next/server";
 import { Dirent, readdir, existsSync, stat, statSync } from "fs";
 import { execSync } from "child_process";
 import { getMimeType } from "@/utils/mime";
-import { cache, itemValue } from "@/utils/lru";
+import { cache } from "@/utils/lru";
 
 const infoCache = cache();
 
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     try {
       let check = await infoCache.check(path);
       console.log(`${path} fetched from cache`);
-      return check;
+      return Response.json(check);
     } catch {
       let stat = statSync(path);
       let len = await getMetadata(path);
