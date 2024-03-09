@@ -1,5 +1,5 @@
 import { type NextRequest } from "next/server";
-import { Dirent, readdir, existsSync } from "fs";
+import { Dirent, readdir, existsSync, stat, statSync } from "fs";
 import { execSync } from "child_process";
 import { getMimeType } from "@/utils/mime";
 import {cache, itemValue} from "@/utils/lru";
@@ -16,57 +16,29 @@ export async function GET(request: NextRequest) {
     path.includes("./") ||
     path.includes("../")
   ) {
-    return new Response(`Invalid path`, {
+    return new Response(`Invalid filepath`, {
       status: 400,
     });
   }
-  // check if path is even available
-  if (!existsSync(path)) {
-    return new Response(`Path does not exist at ${path}`, {
-      status: 400,
+ try {
+  let stat = statSync(path);
+  let len = await getMetadata(path);
+  if (stat.isFile()) {
+    let mime = getMimeType(path);
+    return Response.json({
+      name: path.split("/").pop(),
+      mime: mime,
+      length: len,
+      bytes: stat.size,
     });
   }
-
-  // get all items at path
-  let p = await readDir(path);
-
-  return Response.json(p);
+} catch {
+    return new Response('Unable to read file', {
+      status: 400,
+    });
 }
-
-async function readDir(path: string): Promise<
-  {
-    name: string;
-    path: string;
-    type: string;
-    mime: string;
-    length: number | null;
-  }[]
-> {
-  let items: {
-    name: string;
-    path: string;
-    type: string;
-    mime: string;
-    length: number | null;
-  }[] = [];
-  // get all items at path
-  return new Promise((resolve, reject) => {
-    readdir(path, { withFileTypes: true }, (error, files) => {
-      if (error) {
-        return Response.json({ error: error });
-      } else {
-        files.map(async (file) => {
-          items.push({
-            name: file.name,
-            path: file.path,
-            type: file.isDirectory() ? "dir" : "file",
-            mime: getMimeType(`${file.path}/${file.name}`),
-            length: await getMetadata(`${file.path}/${file.name}`),
-          });
-        });
-      }
-      resolve(items);
-    });
+  return new Response('File not specified', {
+    status: 400,
   });
 }
 

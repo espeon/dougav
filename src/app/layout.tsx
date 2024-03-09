@@ -16,7 +16,54 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>{children}{ambilight}</body>
     </html>
   );
 }
+
+let ambilight = (
+  <svg width="0" height="0">
+    <filter
+      id="ambilight"
+      width="8000%"
+      height="8000%"
+      x="-0.75"
+      y="-0.75"
+      colorInterpolationFilters="sRGB"
+    >
+      <feOffset in="SourceGraphic" result="source-copy"></feOffset>
+      <feColorMatrix
+        in="source-copy"
+        type="saturate"
+        values="1.5"
+        result="saturated-copy"
+      ></feColorMatrix>
+      <feColorMatrix
+        in="saturated-copy"
+        type="matrix"
+        values="1 0 0 0 0
+               0 1 0 0 0
+               0 0 1 0 0
+               33 33 33 101 -102"
+        result="bright-colors"
+      ></feColorMatrix>
+      <feMorphology
+        in="bright-colors"
+        operator="dilate"
+        radius="13"
+        result="spread"
+      ></feMorphology>
+      <feGaussianBlur
+        in="spread"
+        stdDeviation="42"
+        result="ambilight-light"
+      ></feGaussianBlur>
+      <feOffset in="SourceGraphic" result="source"></feOffset>
+      <feComposite
+        in="source"
+        in2="ambilight-light"
+        operator="over"
+      ></feComposite>
+    </filter>
+  </svg>
+);
