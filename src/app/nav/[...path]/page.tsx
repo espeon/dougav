@@ -47,7 +47,7 @@ export default async function Home({ params }: { params: { path: string[] } }) {
     type: string;
     mime: string;
     length: number | undefined;
-  }[] = await getData("videos");
+  }[] = await getData(params.path.join("/"));
   console.log(d);
   // put all item types that arent videos in another array
   var folders = d.filter((item) => item.type === "dir");
