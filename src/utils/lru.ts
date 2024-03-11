@@ -8,6 +8,7 @@ export interface itemValue {
   mime: string;
   length: number | null;
   bytes: number | null;
+  timeLastModified: number;
 }
 
 export function cache() {

@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
           mime: mime,
           length: len,
           bytes: stat.size,
+          timeLastModified: stat.mtimeMs,
         };
         infoCache.set(path, r);
         return Response.json(r);

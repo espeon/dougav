@@ -62,12 +62,15 @@ async function readDir(path: string): Promise<itemValue[]> {
           mime: getMimeType(path),
           length: await getMetadata(path),
           bytes: stat.isFile() ? stat.size : null,
+          timeLastModified: stat.ctimeMs,
         };
         console.log("putting " + `${path} in cache`);
         infoCache.set(path, f);
         items.push(f);
       }
     }
+    // sort items by time last modified (latest first)
+    items.sort((a, b) => b.timeLastModified - a.timeLastModified);
     resolve(items);
   });
 }
