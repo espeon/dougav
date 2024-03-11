@@ -1,5 +1,6 @@
 import { type NextRequest } from "next/server";
 import { Dirent, readdir, existsSync, statSync } from "fs";
+import { opendir } from "fs/promises";
 import { execSync } from "child_process";
 import { getMimeType } from "@/utils/mime";
 import { cache, itemValue } from "@/utils/lru";
@@ -35,38 +36,32 @@ export async function GET(request: NextRequest) {
 
 async function readDir(path: string): Promise<itemValue[]> {
   let items: itemValue[] = [];
-  // get all items at path
-  return new Promise((resolve, reject) => {
-    readdir(path, { withFileTypes: true }, (error, files) => {
-      if (error) {
-        return Response.json({ error: error });
-      } else {
-        files.map(async (file) => {
-          try {
-            let check = await infoCache.check(`${file.path}/${file.name}`);
-            console.log(check)
-            if(check === undefined) throw "is null";
-            console.log(`${file.path}/${file.name} fetched from cache`);
-            items.push(check);
-          } catch {
-            // get item size
-            let stat = statSync(`${file.path}/${file.name}`);
-            let f: itemValue = {
-              name: file.name,
-              path: file.path,
-              type: file.isDirectory() ? "dir" : "file",
-              mime: getMimeType(`${file.path}/${file.name}`),
-              length: await getMetadata(`${file.path}/${file.name}`),
-              bytes: stat.isFile() ? stat.size : null,
-            };
-            console.log("putting " + `${file.path}/${file.name} in cache`);
-            infoCache.set(`${file.path}/${file.name}`, f);
-            items.push(f);
-          }
-        });
+  let dir = await opendir(path);
+  return new Promise(async (resolve, reject) => {
+    for await (const file of dir) {
+      try {
+        let check = await infoCache.check(`${file.path}/${file.name}`);
+        console.log(check);
+        if (check === undefined) throw "is null";
+        console.log(`${file.path}/${file.name} fetched from cache`);
+        items.push(check);
+      } catch {
+        // get item size
+        let stat = statSync(`${file.path}/${file.name}`);
+        let f: itemValue = {
+          name: file.name,
+          path: file.path,
+          type: file.isDirectory() ? "dir" : "file",
+          mime: getMimeType(`${file.path}/${file.name}`),
+          length: await getMetadata(`${file.path}/${file.name}`),
+          bytes: stat.isFile() ? stat.size : null,
+        };
+        console.log("putting " + `${file.path}/${file.name} in cache`);
+        infoCache.set(`${file.path}/${file.name}`, f);
+        items.push(f);
       }
-      resolve(items);
-    });
+    }
+    resolve(items);
   });
 }
 
