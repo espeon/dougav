@@ -39,25 +39,32 @@ async function readDir(path: string): Promise<itemValue[]> {
   let dir = await opendir(path);
   return new Promise(async (resolve, reject) => {
     for await (const file of dir) {
+      // check OS - if on mac, add name to file path
+      let path = file.path
+      // get item path WITHOUT file name on the end
+      let folder = file.path.split("/").slice(0, -1).join("/");
+      if(process.platform === "darwin") {
+        path = `${file.path}/${file.name}`
+        folder = file.path
+      }
       try {
-        let check = await infoCache.check(`${file.path}/${file.name}`);
-        console.log(check);
+        let check = await infoCache.check(path);
         if (check === undefined) throw "is null";
-        console.log(`${file.path}/${file.name} fetched from cache`);
+        console.log(`${file.path} fetched from cache`);
         items.push(check);
       } catch {
         // get item size
-        let stat = statSync(`${file.path}/${file.name}`);
+        let stat = statSync(path);
         let f: itemValue = {
           name: file.name,
-          path: file.path,
+          path: folder,
           type: file.isDirectory() ? "dir" : "file",
-          mime: getMimeType(`${file.path}/${file.name}`),
-          length: await getMetadata(`${file.path}/${file.name}`),
+          mime: getMimeType(path),
+          length: await getMetadata(path),
           bytes: stat.isFile() ? stat.size : null,
         };
-        console.log("putting " + `${file.path}/${file.name} in cache`);
-        infoCache.set(`${file.path}/${file.name}`, f);
+        console.log("putting " + `${path} in cache`);
+        infoCache.set(path, f);
         items.push(f);
       }
     }
