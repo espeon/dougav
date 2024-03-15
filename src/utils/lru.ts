@@ -13,9 +13,9 @@ export interface itemValue {
 
 export function cache() {
   const c = new LRUCache({
-    max: 500,
-    // 5 days in ms
-    ttl: 1000 * 60 * 60 * 24 * 5,
+    max: 30000,
+    // 28 days in ms
+    ttl: 1000 * 60 * 60 * 24 * 7 * 4,
     allowStale: true,
     updateAgeOnGet: true,
   });
