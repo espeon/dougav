@@ -4,7 +4,7 @@ import Link from "next/link";
 
 async function getData(path: string) {
   const res = await fetch(
-    `${process.env.URL ?? "http://localhost:3000"}/` + "ls?path=" + path,
+    `${process.env.NEXT_PUBLIC_URL ?? "http://localhost:3000"}/` + "ls?path=" + path,
     {
       cache: "no-store",
     }

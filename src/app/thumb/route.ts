@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 // generate thumbnail using ffmpeg
 function genThumb(path: string): string {
     let outpath_split = path.split('.')
-    let outpath = "/tmp/" + outpath_split[outpath_split.length - 2] + '.webp';
+    let outpath = "./thumbs/" + outpath_split[outpath_split.length - 2] + '.webp';
     // get outpath without the file
     let outpath_path = outpath.split('/')
     outpath_path.pop()

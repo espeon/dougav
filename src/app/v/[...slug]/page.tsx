@@ -36,8 +36,7 @@ export default function VideoPage({ params }: { params: { slug: string[] } }) {
 
   useEffect(() => {
     fetch(
-      `${process.env.URL ?? "http://localhost:3000"}/` +
-        "ls/file?path=" +
+      `${process.env.NEXT_PUBLIC_URL ?? "http://localhost:3000"}/` + "/ls/file?path=" +
         params.slug.join("/"),
       {
         cache: "no-store",
