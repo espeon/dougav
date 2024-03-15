@@ -4,8 +4,13 @@ import { opendir } from "fs/promises";
 import { execSync } from "child_process";
 import { getMimeType } from "@/utils/mime";
 import { cache, itemValue } from "@/utils/lru";
+import { Kv } from "@/utils/denokv";
 
 const infoCache = cache();
+
+const kv = Kv({
+  location: "kv.db",
+});
 
 export async function GET(request: NextRequest) {
   let path = request.nextUrl.searchParams.get("path") ?? "videos";
@@ -40,12 +45,12 @@ async function readDir(path: string): Promise<itemValue[]> {
   return new Promise(async (resolve, reject) => {
     for await (const file of dir) {
       // check OS - if on mac, add name to file path
-      let path = file.path
+      let path = file.path;
       // get item path WITHOUT file name on the end
       let folder = file.path.split("/").slice(0, -1).join("/");
-      if(process.platform === "darwin") {
-        path = `${file.path}/${file.name}`
-        folder = file.path
+      if (process.platform === "darwin") {
+        path = `${file.path}/${file.name}`;
+        folder = file.path;
       }
       try {
         let check = await infoCache.check(path);
@@ -53,20 +58,29 @@ async function readDir(path: string): Promise<itemValue[]> {
         console.log(`${file.path} fetched from cache`);
         items.push(check);
       } catch {
-        // get item size
-        let stat = statSync(path);
-        let f: itemValue = {
-          name: file.name,
-          path: folder,
-          type: file.isDirectory() ? "dir" : "file",
-          mime: getMimeType(path),
-          length: await getMetadata(path),
-          bytes: stat.isFile() ? stat.size : null,
-          timeLastModified: stat.ctimeMs,
-        };
-        console.log("putting " + `${path} in cache`);
-        infoCache.set(path, f);
-        items.push(f);
+        // im just lazy and i know this works
+        // TODO: replcae this with a better solution
+        try {
+          let res = await kv.get(path);
+          if (res == null) throw "is null";
+          items.push(res);
+        } catch {
+          // get item size
+          let stat = statSync(path);
+          let f: itemValue = {
+            name: file.name,
+            path: folder,
+            type: file.isDirectory() ? "dir" : "file",
+            mime: getMimeType(path),
+            length: await getMetadata(path),
+            bytes: stat.isFile() ? stat.size : null,
+            timeLastModified: stat.ctimeMs,
+          };
+          console.log("putting " + `${path} in cache`);
+          items.push(f);
+          infoCache.set(path, f);
+          await kv.set(path, f);
+        }
       }
     }
     // sort items by time last modified (latest first)
