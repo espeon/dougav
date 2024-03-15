@@ -4,13 +4,11 @@ import { opendir } from "fs/promises";
 import { execSync } from "child_process";
 import { getMimeType } from "@/utils/mime";
 import { cache, itemValue } from "@/utils/lru";
-import { Kv } from "@/utils/denokv";
+import { SqliteKV } from "@/utils/denokv";
 
 const infoCache = cache();
 
-const kv = Kv({
-  location: "kv.db",
-});
+const kv = new SqliteKV("./cache/kv.db");
 
 export async function GET(request: NextRequest) {
   let path = request.nextUrl.searchParams.get("path") ?? "videos";
@@ -53,6 +51,7 @@ async function readDir(path: string): Promise<itemValue[]> {
         folder = file.path;
       }
       try {
+        throw "ball"
         let check = await infoCache.check(path);
         if (check === undefined) throw "is null";
         console.log(`${file.path} fetched from cache`);
@@ -61,8 +60,9 @@ async function readDir(path: string): Promise<itemValue[]> {
         // im just lazy and i know this works
         // TODO: replcae this with a better solution
         try {
-          let res = await kv.get(path);
+          let res = await kv.getitemValue(path);
           if (res == null) throw "is null";
+          console.log(`${file.path} fetched from db`);
           items.push(res);
         } catch {
           // get item size
@@ -79,7 +79,7 @@ async function readDir(path: string): Promise<itemValue[]> {
           console.log("putting " + `${path} in cache`);
           items.push(f);
           infoCache.set(path, f);
-          await kv.set(path, f);
+          await kv.set(path, JSON.stringify(f));
         }
       }
     }
