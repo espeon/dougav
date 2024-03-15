@@ -22,6 +22,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# make cache dir
+RUN mkdir -p cache
+
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
 # Uncomment the following line in case you want to disable telemetry during the build.
@@ -49,6 +52,8 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
+RUN mkdir -p cache
+RUN chown nextjs:nodejs cache
 
 # Set the correct permission for prerender cache
 RUN mkdir .next
