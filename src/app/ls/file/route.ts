@@ -3,8 +3,11 @@ import { Dirent, readdir, existsSync, stat, statSync } from "fs";
 import { execSync } from "child_process";
 import { getMimeType } from "@/utils/mime";
 import { cache } from "@/utils/lru";
+import { SqliteKV } from "@/utils/denokv";
 
 const infoCache = cache();
+
+const kv = new SqliteKV("./cache/kv.db");
 
 export async function GET(request: NextRequest) {
   let path = request.nextUrl.searchParams.get("path") ?? "videos";
@@ -23,24 +26,32 @@ export async function GET(request: NextRequest) {
   try {
     try {
       let check = await infoCache.check(path);
+      if (check === undefined) throw "is null";
       console.log(`${path} fetched from cache`);
       return Response.json(check);
     } catch {
-      let stat = statSync(path);
-      let len = await getMetadata(path);
-      if (stat.isFile()) {
-        let mime = getMimeType(path);
-        let r = {
-          name: path.split("/").pop() as string,
-          path: path,
-          type: "file",
-          mime: mime,
-          length: len,
-          bytes: stat.size,
-          timeLastModified: stat.mtimeMs,
-        };
-        infoCache.set(path, r);
-        return Response.json(r);
+      try {
+        let res = await kv.getitemValue(path);
+        if (res == null) throw "is null";
+        console.log(`${path} fetched from db`);
+        return Response.json(res);
+      } catch {
+        let stat = statSync(path);
+        let len = await getMetadata(path);
+        if (stat.isFile()) {
+          let mime = getMimeType(path);
+          let r = {
+            name: path.split("/").pop() as string,
+            path: path,
+            type: "file",
+            mime: mime,
+            length: len,
+            bytes: stat.size,
+            timeLastModified: stat.mtimeMs,
+          };
+          infoCache.set(path, r);
+          return Response.json(r);
+        }
       }
     }
   } catch {

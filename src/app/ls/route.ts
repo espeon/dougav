@@ -51,7 +51,6 @@ async function readDir(path: string): Promise<itemValue[]> {
         folder = file.path;
       }
       try {
-        throw "ball"
         let check = await infoCache.check(path);
         if (check === undefined) throw "is null";
         console.log(`${file.path} fetched from cache`);
