@@ -74,7 +74,7 @@ async function getMetadata(path: string): Promise<number | null> {
     // ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 file.mp4
     let cmd = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 ${path.replaceAll(
       " ",
-      "\\ "
+      "\\ ",
     )}`;
     try {
       let e = execSync(cmd);

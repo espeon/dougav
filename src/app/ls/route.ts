@@ -1,105 +1,144 @@
 import { type NextRequest } from "next/server";
-import { Dirent, readdir, existsSync, statSync } from "fs";
-import { opendir } from "fs/promises";
+import { readdir, stat } from "fs/promises";
+import { Dirent } from "fs";
 import { execSync } from "child_process";
 import { getMimeType } from "@/utils/mime";
-import { cache, itemValue } from "@/utils/lru";
+import { cache } from "@/utils/lru";
 import { SqliteKV } from "@/utils/denokv";
+import { Worker } from "worker_threads";
 
 const infoCache = cache();
-
 const kv = new SqliteKV("./cache/kv.db");
 
 export async function GET(request: NextRequest) {
-  let path = request.nextUrl.searchParams.get("path") ?? "videos";
-  // try to protect against directory traversal
-  if (
-    path == "/" ||
-    path.includes("/..") ||
-    path.includes("/../") ||
-    path.includes("./") ||
-    path.includes("../")
-  ) {
-    return new Response(`Invalid path`, {
-      status: 400,
-    });
-  }
-  // check if path is even available
-  if (!existsSync(path)) {
-    return new Response(`Path does not exist at ${path}`, {
-      status: 400,
-    });
+  const path = request.nextUrl.searchParams.get("path") ?? "videos";
+
+  if (!isValidPath(path)) {
+    return new Response(`Invalid filepath`, { status: 400 });
   }
 
-  // get all items at path
-  let p = await readDir(path);
-
-  return Response.json(p);
+  try {
+    const files = await readdir(path, { withFileTypes: true });
+    const fileProcessingTasks = files.map((dirent) =>
+      processDirent(dirent, path),
+    );
+    const results = await Promise.all(fileProcessingTasks);
+    return Response.json(results.filter((result) => result !== null));
+  } catch (error) {
+    return new Response("Unable to read files", { status: 400 });
+  }
 }
 
-async function readDir(path: string): Promise<itemValue[]> {
-  let items: itemValue[] = [];
-  let dir = await opendir(path);
-  return new Promise(async (resolve, reject) => {
-    for await (const file of dir) {
-      // check OS - if on mac, add name to file path
-      let path = file.path;
-      // get item path WITHOUT file name on the end
-      let folder = file.path.split("/").slice(0, -1).join("/");
-      if (process.platform === "darwin") {
-        path = `${file.path}/${file.name}`;
-        folder = file.path;
-      }
-      try {
-        let check = await infoCache.check(path);
-        if (check === undefined) throw "is null";
-        console.log(`${file.path} fetched from cache`);
-        items.push(check);
-      } catch {
-        // im just lazy and i know this works
-        // TODO: replcae this with a better solution
-        try {
-          let res = await kv.getitemValue(path);
-          if (res == null) throw "is null";
-          console.log(`${file.path} fetched from db`);
-          items.push(res);
-        } catch {
-          // get item size
-          let stat = statSync(path);
-          let f: itemValue = {
-            name: file.name,
-            path: folder,
-            type: file.isDirectory() ? "dir" : "file",
-            mime: getMimeType(path),
-            length: await getMetadata(path),
-            bytes: stat.isFile() ? stat.size : null,
-            timeLastModified: stat.ctimeMs,
-          };
-          console.log("putting " + `${path} in cache`);
-          items.push(f);
-          infoCache.set(path, f);
-          await kv.set(path, JSON.stringify(f));
-        }
-      }
+async function processDirent(dirent: Dirent, parentPath: string) {
+  const filePath = `${parentPath}/${dirent.name}`;
+
+  if (dirent.isDirectory()) {
+    return await processDir(filePath);
+  }
+
+  return await processFile(filePath);
+}
+
+async function processDir(dirPath: string) {
+  console.log(`Processing directory: ${dirPath}`);
+  return {
+    name: dirPath.split("/").pop() as string,
+    path: dirPath.split("/").slice(0, -1).join("/"),
+    type: "dir",
+    mime: "dir",
+    length: null,
+    bytes: null,
+    timeLastModified: 0,
+  };
+}
+
+async function processFile(filePath: string) {
+  try {
+    const [cachedResponse, fileStats] = await Promise.all([
+      getCachedResponse(filePath),
+      getFileStats(filePath),
+    ]);
+
+    if (cachedResponse) return cachedResponse;
+
+    const [mime, metadataLength] = await Promise.all([
+      getMimeType(filePath),
+      getMetadata(filePath),
+    ]);
+
+    const fileInfo = {
+      name: filePath.split("/").pop() as string,
+      path: filePath.split("/").slice(0, -1).join("/"),
+      type: "file",
+      mime,
+      length: metadataLength,
+      bytes: fileStats.size,
+      timeLastModified: fileStats.mtimeMs,
+    };
+
+    infoCache.set(filePath, fileInfo);
+    return fileInfo;
+  } catch (error) {
+    console.error(`Failed to process file: ${filePath}`, error);
+    return null;
+  }
+}
+
+async function getCachedResponse(path: string) {
+  try {
+    const [cacheResult, dbResult] = await Promise.all([
+      infoCache.check(path),
+      kv.getitemValue(path),
+    ]);
+
+    if (cacheResult !== undefined) {
+      console.log(`${path} fetched from cache`);
+      return cacheResult;
     }
-    // sort items by time last modified (latest first)
-    items.sort((a, b) => b.timeLastModified - a.timeLastModified);
-    resolve(items);
-  });
+
+    if (dbResult !== null) {
+      console.log(`${path} fetched from db`);
+      infoCache.set(path, dbResult);
+      return dbResult;
+    }
+  } catch {
+    // Cache miss, continue to get fresh data
+  }
+  return null;
 }
 
 async function getMetadata(path: string): Promise<number | null> {
-  // ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 file.mp4
-  let cmd = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 ${path.replaceAll(
-    " ",
-    "\\ "
-  )}`;
+  let cmd;
   try {
-    let e = execSync(cmd);
-    let l = parseFloat(e.toString());
-    return l;
+    const cachedData = await infoCache.check(path);
+    if (cachedData?.length !== undefined) {
+      console.log("len check succeeded");
+      return cachedData.length;
+    }
+
+    cmd = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 ${escapeShellPath(path)}`;
+    const output = execSync(cmd);
+    const length = parseFloat(output.toString());
+    return length;
   } catch (err) {
-    console.log("Error occurred, run this command to debug: " + cmd);
+    console.log(`Error occurred, run this command to debug: ${cmd}`);
     return null;
   }
+}
+
+async function getFileStats(path: string) {
+  try {
+    const stats = await stat(path);
+    return stats;
+  } catch (err: any) {
+    throw new Error(`Failed to get file stats for ${path}: ${err.message}`);
+  }
+}
+
+function isValidPath(path: string): boolean {
+  return !path.includes("..") && !path.startsWith("/");
+}
+
+function escapeShellPath(path: string): string {
+  return path.replace(/ /g, "\\ ");
 }
