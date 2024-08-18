@@ -36,11 +36,12 @@ export default function VideoPage({ params }: { params: { slug: string[] } }) {
 
   useEffect(() => {
     fetch(
-      `${process.env.NEXT_PUBLIC_URL ?? "http://localhost:3000"}/` + "/ls/file?path=" +
+      `${process.env.NEXT_PUBLIC_URL ?? "http://localhost:3000"}` +
+        "/ls/file?path=" +
         params.slug.join("/"),
       {
         cache: "no-store",
-      }
+      },
     )
       .then((res) => res.json())
       .then((data) => {
@@ -50,31 +51,42 @@ export default function VideoPage({ params }: { params: { slug: string[] } }) {
   }, []);
 
   return (
-    <div className="h-screen flex justify-center items-center">
-      <div className="min-h-[50%] w-1/2 max-h-screen">
-        <div className="rounded-lg border-slate-900 bg-slate-900 bg-opacity-30 border-2 border-opacity-50 w-full ambilight z-10">
+    <div className="flex justify-center items-center">
+      <div className="min-h-[50%] w-1/2 max-h-screen mt-12">
+        <div className="h-full w-full rounded-lg border-slate-900 border-opacity-50 z-10 ambilight">
           <video
-            className="rounded-lg w-full"
+            className="rounded-lg w-full bg-slate-900 bg-opacity-30 border-2 border-opacity-10 border-slate-500"
             src={`/api/raw?path=${params.slug.join("/")}`}
             controls
           >
             Your browser does not support the video tag.
           </video>
         </div>
-        <div className="flex flex-row mt-2">
-          <div className="text-xl mt-2 mx-2 backdrop-invert-0 text-clip">
-            {decodeURIComponent(params.slug[params.slug.length - 1])}
-          </div>
-          <div className="flex-auto"></div>
-          <div>
-            <a href={`/api/raw?path=${params.slug.join("/")}`} download>
-              <button className="dark:bg-blue-800 bg-blue-200 hover:bg-blue-500 text-black dark:text-white py-2 px-4 rounded transition-all duration-300">
-                Download{" "}
-                {data === null ? loading : "(" + getSize(data.bytes) + ")"}
-              </button>
-            </a>
-          </div>
-        </div>
+        <VideoTitle params={params} data={data} />
+      </div>
+    </div>
+  );
+}
+
+function VideoTitle({
+  params,
+  data,
+}: {
+  params: { slug: string[] };
+  data: VideoInfo | null;
+}) {
+  return (
+    <div className="flex flex-row mt-2">
+      <div className="text-xl mt-2 mx-2 backdrop-invert-0 text-clip">
+        {decodeURIComponent(params.slug[params.slug.length - 1])}
+      </div>
+      <div className="flex-auto"></div>
+      <div>
+        <a href={`/api/raw?path=${params.slug.join("/")}`} download>
+          <button className="dark:bg-blue-800 bg-blue-200 hover:bg-blue-500 text-black dark:text-white py-2 px-4 rounded transition-all duration-300">
+            Download {data === null ? loading : "(" + getSize(data.bytes) + ")"}
+          </button>
+        </a>
       </div>
     </div>
   );
