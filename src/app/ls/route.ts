@@ -5,7 +5,6 @@ import { execSync } from "child_process";
 import { getMimeType } from "@/utils/mime";
 import { cache } from "@/utils/lru";
 import { SqliteKV } from "@/utils/denokv";
-import { Worker } from "worker_threads";
 
 const infoCache = cache();
 const kv = new SqliteKV("./cache/kv.db");
@@ -40,7 +39,6 @@ async function processDirent(dirent: Dirent, parentPath: string) {
 }
 
 async function processDir(dirPath: string) {
-  console.log(`Processing directory: ${dirPath}`);
   return {
     name: dirPath.split("/").pop() as string,
     path: dirPath.split("/").slice(0, -1).join("/"),
@@ -92,12 +90,10 @@ async function getCachedResponse(path: string) {
     ]);
 
     if (cacheResult !== undefined) {
-      console.log(`${path} fetched from cache`);
       return cacheResult;
     }
 
     if (dbResult !== null) {
-      console.log(`${path} fetched from db`);
       infoCache.set(path, dbResult);
       return dbResult;
     }
@@ -110,18 +106,19 @@ async function getCachedResponse(path: string) {
 async function getMetadata(path: string): Promise<number | null> {
   let cmd;
   try {
-    const cachedData = await infoCache.check(path);
-    if (cachedData?.length !== undefined) {
-      console.log("len check succeeded");
+    let cachedData = await infoCache.check(path);
+    if (cachedData?.length !== null) {
       return cachedData.length;
     }
 
     cmd = `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 ${escapeShellPath(path)}`;
     const output = execSync(cmd);
     const length = parseFloat(output.toString());
+
+    cachedData.length = length;
+    infoCache.set(path, cachedData);
     return length;
   } catch (err) {
-    console.log(`Error occurred, run this command to debug: ${cmd}`);
     return null;
   }
 }

@@ -32,7 +32,7 @@ let ambilight = (
       height="300%"
       x="-0.75"
       y="-0.75"
-      color-interpolation-filters="sRGB"
+      colorInterpolationFilters="sRGB"
     >
       <feOffset in="SourceGraphic" result="source-copy"></feOffset>
       <feColorMatrix

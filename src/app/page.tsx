@@ -79,11 +79,13 @@ export default async function Home() {
           {files.map((item) => (
             <div key={item.name}>
               <Link href={`/v/${item.path}/${item.name}`}>
+              <div>
                 <VideoThumb
                   name={item.name}
                   thumbnail={`/thumb?path=${item.path}/${item.name}`}
                   length={hms(item.length ?? 0)}
                 />
+                </div>
               </Link>
             </div>
           ))}

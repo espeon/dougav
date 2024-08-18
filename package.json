@@ -3,19 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "dev": "bun --bun next dev",
+    "build": "bun --bun next build",
+    "start": "bun --bun next start",
+    "lint": "bun --bun next lint"
   },
   "dependencies": {
-    "better-sqlite3": "^9.6.0",
-    "lru-cache": "^10.4.3",
-    "next": "14.1.1",
+    "lru-cache": "^11.0.0",
+    "next": "^14.2.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@types/bun": "^1.1.0",
     "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^20.15.0",
     "@types/react": "^18.3.3",

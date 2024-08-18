@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 
 function getSize(bytes: number) {
-  console.log(bytes);
   if (bytes > 500000000) {
     return (bytes / 1000000000).toFixed(2) + " GB";
   } else if (bytes > 500000) {

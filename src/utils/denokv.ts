@@ -1,15 +1,15 @@
 import { itemValue } from "./lru";
-import Database from "better-sqlite3";
+import { Database } from "bun:sqlite";
 
 export interface KVOptions {
   location: string;
 }
 
 export class SqliteKV {
-  db: Database.Database;
+  db: Database;
   constructor(location: string) {
     this.db = new Database(location);
-    this.db.pragma("journal_mode = WAL");
+    this.db.exec("PRAGMA journal_mode = WAL");
     this.initTable()
   }
   initTable() {
@@ -20,7 +20,7 @@ export class SqliteKV {
           )
         `);
   }
-  async set(key: String, value: String): Promise<void> {
+  async set(key: string, value: string): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
         const op = this.db.prepare(
@@ -34,21 +34,21 @@ export class SqliteKV {
       }
     });
   }
-  async get(key: String): Promise<String | null> {
+  async get(key: string): Promise<string | null> {
     return new Promise((resolve, reject) => {
       try {
         const op = this.db.prepare("SELECT value FROM kv WHERE key = ?");
         const result = op.get(key);
         console.log(result)
         if (typeof result == "undefined") return resolve(null);
-        if (result && typeof result === 'object' && 'value' in result) resolve(result.value as String);
+        if (result && typeof result === 'object' && 'value' in result) resolve(result.value as string);
         else resolve(null);
       } catch (error) {
         reject(error);
       }
     });
   }
-  async getitemValue(key: String): Promise<itemValue | null> {
+  async getitemValue(key: string): Promise<itemValue | null> {
     return new Promise(async (resolve, reject) => {
       let r = await this.get(key);
       if (r === null) return reject("response is null")
@@ -56,7 +56,7 @@ export class SqliteKV {
       resolve(JSON.parse(r as string) as itemValue);
     });
   }
-  async delete(key: String): Promise<void> {
+  async delete(key: string): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
         const op = this.db.prepare("DELETE FROM kv WHERE key = ?");
@@ -67,7 +67,7 @@ export class SqliteKV {
       }
     });
   }
-  async update(key: String, value: String): Promise<void> {
+  async update(key: string, value: string): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
         const op = this.db.prepare(

@@ -27,13 +27,11 @@ export async function GET(request: NextRequest) {
     try {
       let check = await infoCache.check(path);
       if (check === undefined) throw "is null";
-      console.log(`${path} fetched from cache`);
       return Response.json(check);
     } catch {
       try {
         let res = await kv.getitemValue(path);
         if (res == null) throw "is null";
-        console.log(`${path} fetched from db`);
         return Response.json(res);
       } catch {
         let stat = statSync(path);
@@ -68,7 +66,6 @@ async function getMetadata(path: string): Promise<number | null> {
   // check if path is in our lru cache
   try {
     let check = await infoCache.check(path);
-    console.log("len check succeeded");
     return check.length;
   } catch {
     // ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 file.mp4

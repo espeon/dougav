@@ -11,13 +11,6 @@ export default function VideoThumb({
 }) {
   return (
     <div className="relative group overflow-hidden rounded-lg max-w-md shadow-lg dark:shadow-slate-950 dark:hover:shadow-rose-950 hover:shadow-xl duration-500 transition-all">
-      <Link
-        className="absolute inset-0 flex items-center justify-center p-4 text-3xl text-gray-100 transform translate-y-full transition-all duration-300 bg-black/50"
-        href="#"
-      >
-        <span className="sr-only">Play</span>
-        <div className="w-10 h-10" />
-      </Link>
       <img
         alt="Video thumbnail"
         className="object-cover w-full aspect-[16/9] group-hover:scale-100/none transition-transform"
