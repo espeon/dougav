@@ -1,60 +1,91 @@
 import { type NextRequest } from "next/server";
-import { execSync } from "child_process";
-import fs from "fs";
+import { spawn } from "child_process";
+import { promises as fs } from "fs";
+import path from "path";
 
 export async function GET(request: NextRequest) {
-  let path =
+  const videoPath =
     request.nextUrl.searchParams.get("path") ?? "videos/dancing_polish_cow.mp4";
-  // check if video exists
-  if (!fs.existsSync(path)) {
-    return new Response(`Video does not exist at ${path}`, {
+
+  // Check if the video exists asynchronously
+  if (!(await fileExists(videoPath))) {
+    return new Response(`Video does not exist at ${videoPath}`, {
       status: 400,
     });
   }
-  // check if the thumbnail exists
-  let outpath_split = path.split(".");
-  let outpath = "./cache/" + outpath_split[outpath_split.length - 2] + ".webp";
-  if (fs.existsSync(outpath)) {
-    return new Response(fs.readFileSync(outpath), {
-      headers: {
-        "Content-Type": "image/webp",
-      },
-    });
+
+  const outpath = getThumbnailPath(videoPath);
+
+  // Check if the thumbnail already exists
+  if (await fileExists(outpath)) {
+    return serveThumbnail(outpath);
   }
-  let tpath = genThumb(path);
-  // load and serve the thumbnail via node fs
-  if (fs.existsSync(outpath)) {
-    return new Response(fs.readFileSync(outpath), {
-      headers: {
-        "Content-Type": "image/webp",
-      },
-    });
+
+  // Generate the thumbnail and then serve it
+  try {
+    await genThumb(videoPath, outpath);
+    return serveThumbnail(outpath);
+  } catch (error) {
+    return new Response("Failed to generate thumbnail", { status: 500 });
   }
 }
 
-// generate thumbnail using ffmpeg
-function genThumb(path: string): string {
-  let outpath_split = path.split(".");
-  let outpath = "./cache/" + outpath_split[outpath_split.length - 2] + ".webp";
-  // get outpath without the file
-  let outpath_path = outpath.split("/");
-  outpath_path.pop();
-  console.log(outpath_path);
-  let pathToCreate = outpath_path.join("/");
-  // create the directory if not available
+// Helper function to serve the thumbnail
+async function serveThumbnail(outpath: string) {
+  const fileBuffer = await fs.readFile(outpath);
+  return new Response(fileBuffer, {
+    headers: { "Content-Type": "image/webp" },
+  });
+}
+
+// Check if a file exists asynchronously
+async function fileExists(path: string) {
   try {
-    fs.mkdirSync(pathToCreate, { recursive: true });
-    console.log(`Directory "${pathToCreate}" created successfully.`);
-  } catch (err) {
-    console.error(`Error creating directory: ${(err as Error).message}`);
+    await fs.access(path);
+    return true;
+  } catch {
+    return false;
   }
-  // generate thumbnail
-  let cmd = `ffmpeg -ss 00:00:02.000 -i ${path.replaceAll(" ", "\\ ")} -vframes 1 ${outpath.replaceAll(" ", "\\ ")}`;
-  try {
-    execSync(cmd);
-  } catch (err) {
-    return "https://i.ytimg.com/vi/9K8ifZ6iDXo/maxresdefault.jpg";
-    console.log("Error occurred, run this command to debug: " + cmd);
-  }
-  return outpath;
+}
+
+// Get the output path for the thumbnail
+function getThumbnailPath(videoPath: string): string {
+  const ext = path.extname(videoPath);
+  const base = path.basename(videoPath, ext);
+  return path.join("./cache", `${base}.webp`);
+}
+
+// Generate thumbnail using ffmpeg in a non-blocking way
+function genThumb(videoPath: string, outpath: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const outDir = path.dirname(outpath);
+
+    fs.mkdir(outDir, { recursive: true })
+      .then(() => {
+        const cmd = `ffmpeg -ss 00:00:02.000 -i ${videoPath} -vframes 1 ${outpath}`;
+        const ffmpeg = spawn("ffmpeg", [
+          "-ss",
+          "00:00:02.000",
+          "-i",
+          videoPath,
+          "-vframes",
+          "1",
+          outpath,
+        ]);
+
+        ffmpeg.on("error", (err) => {
+          console.error("Error generating thumbnail:", err);
+          resolve();
+        });
+
+        ffmpeg.on("exit", (code) => {
+          if (code === 0) {
+            resolve();
+          } else {
+            reject(new Error(`ffmpeg exited with code ${code}`));
+          }
+        });
+      })
+      .catch(reject);
+  });
 }
