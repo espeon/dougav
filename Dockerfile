@@ -4,16 +4,9 @@ FROM oven/bun:latest AS base
 FROM base AS deps
 WORKDIR /app
 
-# Add things for node-gyp
-RUN apt update && apt install -y build-essential python3
-
-RUN bun add --global node-gyp
-
-RUN update-ca-certificates
-
 # Install bun deps
 COPY bun.lockb package.json ./
-RUN bun i --verbose
+RUN bun i
 
 
 # Rebuild the source code only when needed
