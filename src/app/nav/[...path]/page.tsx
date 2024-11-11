@@ -40,7 +40,8 @@ function hms(f: number) {
   return hms;
 }
 
-export default async function Home({ params }: { params: { path: string[] } }) {
+export default async function Home(props: { params: Promise<{ path: string[] }> }) {
+  const params = await props.params;
   let d: {
     name: string;
     path: string;

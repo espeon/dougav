@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
 }
 
 async function processDirent(dirent: Dirent, parentPath: string) {
+  //"use cache";
   const filePath = `${parentPath}/${dirent.name}`;
 
   if (dirent.isDirectory()) {
@@ -104,6 +105,7 @@ async function getCachedResponse(path: string) {
 }
 
 async function getMetadata(path: string): Promise<number | null> {
+  //"use cache";
   let cmd;
   try {
     let cachedData = await infoCache.check(path);

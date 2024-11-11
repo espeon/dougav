@@ -4,10 +4,12 @@ import Link from "next/link";
 
 async function getData(path: string) {
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_URL ?? "http://localhost:3000"}/` + "ls?path=" + path,
+    `${process.env.NEXT_PUBLIC_URL ?? "http://localhost:3000"}/` +
+      "ls?path=" +
+      path,
     {
       cache: "no-store",
-    }
+    },
   );
   // The return value is *not* serialized
   // You can return Date, Map, Set, etc.
@@ -41,6 +43,7 @@ function hms(f: number) {
 }
 
 export default async function Home() {
+  //"use cache";
   let d: {
     name: string;
     path: string;
@@ -52,7 +55,7 @@ export default async function Home() {
   // put all item types that arent videos in another array
   var folders = d.filter((item) => item.type === "dir");
   var files = d.filter(
-    (item) => item.type === "file" && item.mime.includes("video")
+    (item) => item.type === "file" && item.mime.includes("video"),
   );
 
   if (d.length == 0)
@@ -79,12 +82,12 @@ export default async function Home() {
           {files.map((item) => (
             <div key={item.name}>
               <Link href={`/v/${item.path}/${item.name}`}>
-              <div>
-                <VideoThumb
-                  name={item.name}
-                  thumbnail={`/thumb?path=${item.path}/${item.name}`}
-                  length={hms(item.length ?? 0)}
-                />
+                <div>
+                  <VideoThumb
+                    name={item.name}
+                    thumbnail={`/thumb?path=${item.path}/${item.name}`}
+                    length={hms(item.length ?? 0)}
+                  />
                 </div>
               </Link>
             </div>

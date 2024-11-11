@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 
 function getSize(bytes: number) {
   if (bytes > 500000000) {
@@ -20,7 +20,8 @@ interface VideoInfo {
   bytes: number;
 }
 
-export default function VideoPage({ params }: { params: { slug: string[] } }) {
+export default function VideoPage(props: { params: Promise<{ slug: string[] }> }) {
+  const params = use(props.params);
   const [ambi, setAmbi] = useState(false);
   let d: {
     name: string;

@@ -63,6 +63,7 @@ export async function GET(request: NextRequest) {
 }
 
 async function getMetadata(path: string): Promise<number | null> {
+  //"use cache";
   // check if path is in our lru cache
   try {
     let check = await infoCache.check(path);
